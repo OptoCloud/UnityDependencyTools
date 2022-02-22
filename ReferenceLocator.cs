@@ -27,7 +27,11 @@ namespace OptoCloud
         private static void Deduplicate(AnimationClip animationClip)
         {
             // Get all clips that matches this one
-            HashSet<AnimationClip> matchingClips = new HashSet<AnimationClip>(FindAssetsByType<AnimationClip>().Where(c => !AssetDatabase.GetAssetPath(c).StartsWith(TRASH_PATH) && c.ContentCompare(animationClip)));
+            HashSet<AnimationClip> matchingClips = new HashSet<AnimationClip>(
+                FindAssetsByType<AnimationClip>()
+                .Where(c => !AssetDatabase.GetAssetPath(c).StartsWith(TRASH_PATH) && c.ContentCompare(animationClip))
+                .UnityDisplayCancellableProgressBar($"Deduplicating animations...", (AnimationClip anim) => "Processing " + anim.name)
+                );
 
             // Get the path to the target clip
             string clipPath = AssetDatabase.GetAssetPath(animationClip);
@@ -53,7 +57,7 @@ namespace OptoCloud
             }
 
             // Go trough all animation controllers and swap out clips matching the current one
-            foreach (AnimatorController controller in FindAssetsByType<AnimatorController>("AnimatorController"))
+            foreach (AnimatorController controller in FindAssetsByType<AnimatorController>("AnimatorController").UnityDisplayCancellableProgressBar($"Fixing animation references...", (AnimatorController controller) => "Processing " + controller.name))
             {
                 Crawl(controller, (AnimationClip clip) => clip != preferredClip && clip.ContentCompare(preferredClip) ? preferredClip : clip);
             }
@@ -117,7 +121,7 @@ namespace OptoCloud
         /// <returns></returns>
         static IEnumerable<Material> FindLinkedMaterials(Texture2D selectedTexture)
         {
-            foreach (Material material in FindAssetsByType<Material>())
+            foreach (Material material in FindAssetsByType<Material>().UnityDisplayCancellableProgressBar($"Locating linked materials for \"{selectedTexture.name}\"", (Material mat) => "Scanning " + mat.name))
             {
                 foreach (string texName in material.GetTexturePropertyNames())
                 {
@@ -152,7 +156,7 @@ namespace OptoCloud
         /// <returns></returns>
         static IEnumerable<Texture2D> FindDuplicateTextures(Texture2D selectedTexture)
         {
-            foreach (Texture2D texture in FindAssetsByType<Texture2D>())
+            foreach (Texture2D texture in FindAssetsByType<Texture2D>().UnityDisplayCancellableProgressBar($"Locating duplicate textues for \"{selectedTexture.name}\"", (Texture2D tex) => "Scanning " + tex.name))
             {
                 if (texture.imageContentsHash == selectedTexture.imageContentsHash)
                 {
